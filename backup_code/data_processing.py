@@ -1,14 +1,16 @@
-"""
-
-@uthor: Himaghna, 4th September, 2019
+"""@uthor: Himaghna, 4th September, 2019
 Description: Process data
-"""
 
+"""
+from argparse import ArgumentParser
+import os.path
 
 import json
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
+import pickle
+
 
 def process_data(df, target_column, descrptr_columns):
     """
@@ -26,12 +28,11 @@ def process_data(df, target_column, descrptr_columns):
     print(f'Shape of DF after dropping empty targets: {df.shape}')
 
     # drop rows where all descriptor values except 'Family' are NaN
-    df.dropna(subset=[_ for _ in descrptr_columns if not _ == 'Family'], \
+    df.dropna(subset=[_ for _ in descrptr_columns if not _ == 'Family'],
                inplace=True, how='all')
     print(f'Shape of DF after dropping empty targets: {df.shape}')
-    print(df.shape)
-
     return df
+
 
 def generate_input(df, descrptr_columns, bins_upper_limit):
     """
@@ -87,7 +88,6 @@ def generate_input(df, descrptr_columns, bins_upper_limit):
             plt.xlabel('Frequencies (cm -1)')
             plt.ylabel('Count')
             plt.show()
-    
 
     def bin_frequencies(frequencies):
         """
@@ -193,7 +193,7 @@ def impute_missing_values(X, method='median'):
 
 def onehot(column):
     """
-    Conert ordinal column to one hot encoded descriptors
+    Convert ordinal column to one hot encoded descriptors
     Params ::
     column: s x 1 np array: array of ordinal observations with c unique values
     Returns ::
@@ -209,36 +209,48 @@ def onehot(column):
     return np.array(list_one_hot).reshape(len(column), -1)
     
 
-def main(config_filename='config.json', show_stats=False):
-    # load configs and populate globals
-    configs = json.load(open(config_filename))
+if __name__ == '__main__':
+    parser = ArgumentParser()
+    parser.add_argument('data_proc_config')
+    args = parser.parse_args()
+
+    configs = json.load(open(args.data_proc_config))
     xl_file = configs.get('xl_file')
     target_column = configs.get('target_column')
     descrptr_columns = configs.get('descrptr_columns')
     bins_upper_limit = configs.get('bins_upper_limit')
+    out_dir = configs.get('output_directory')
+
     df = pd.read_excel(xl_file)
     df = process_data(df, target_column, descrptr_columns)
     y = df[target_column].values
-    family_one_hotx = onehot(df['Family'].values) # s x c numpy array
     X, descriptor_names = generate_input(df, descrptr_columns, bins_upper_limit)
     X = impute_missing_values(X, method='median')
     out_dict = {
         'X': X,
         'y': y,
-        'descriptor_names': descriptor_names,
-        'family_one_hotx': family_one_hotx,
-        'family_int': df['Family'].values
+        'descriptor_names': descriptor_names
     }
-    if show_stats is True:
-        print('******* STATISTICS ********')
-        print(f'*** {target_column} ***')
-        print(f'Mean: {np.mean(y)}')
-        print(f'Std. Dev.: {np.std(y)}')
-        plt.rcParams['svg.fonttype'] = 'none'
-        plt.hist(y, color='orange')
-        plt.xlabel(target_column, fontsize=20)
-        plt.ylabel('Count', fontsize=20)
-        plt.show()
-    return out_dict
+
+    print('******* STATISTICS ********')
+    print(f'*** {target_column} ***')
+    print(f'Mean: {np.mean(y)}')
+    print(f'Std. Dev.: {np.std(y)}')
+    plt.rcParams['svg.fonttype'] = 'none'
+    plt.hist(y, color='orange')
+    plt.xlabel(target_column, fontsize=20)
+    plt.ylabel('Count', fontsize=20)
+    plt.show()
+    
+    X_path = os.path.join(out_dir, 'X.p')
+    print(f'Writing {X_path}...')
+    pickle.dump(X, open(X_path, "wb"))
+    y_path = os.path.join(out_dir, 'y.p')
+    print(f'Writing {y_path}...')
+    pickle.dump(y, open(y_path, "wb"))
+    descriptor_names_path = os.path.join(out_dir, 'descriptor_names.p')
+    print(f'Writing {descriptor_names_path}...')
+    pickle.dump(descriptor_names, open(descriptor_names_path, "wb"))
+
 
 

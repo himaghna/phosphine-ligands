@@ -128,7 +128,11 @@ def check_correlation_with_target(descriptor_name):
     plt.show()
 
 def main():
-    do_PCA()
+    for col in range(X.shape[1]):
+        plt.scatter(X[:, col], y, c='red', alpha=0.4, s=100)
+        plt.xlabel(descriptor_names[col], fontsize=20,)
+        plt.ylabel('Response', fontsize=20)
+        plt.show()
 
 
 if __name__ == '__main__':
