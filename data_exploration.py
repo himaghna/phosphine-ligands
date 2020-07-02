@@ -3,18 +3,15 @@
 Description: Perform exploratory data analysis on the data-set
 """
 
-
+from argparse import ArgumentParser
 import os.path
+
 import matplotlib.pyplot as plt
 import pandas as pd
+import pickle
 from sklearn.decomposition import PCA
 from sklearn.preprocessing import StandardScaler
 
-import data_processing
-
-processed_data = data_processing.main()
-X, y = processed_data['X'], processed_data['y']
-descriptor_names = processed_data['descriptor_names']
 # pyplot parameters
 plt.rcParams['svg.fonttype'] = 'none'
 plt.rc('xtick',labelsize=16)
@@ -127,16 +124,29 @@ def check_correlation_with_target(descriptor_name):
     plt.ylabel('Target', fontsize=20)
     plt.show()
 
-def main():
-    for col in range(X.shape[1]):
-        plt.scatter(X[:, col], y, c='red', alpha=0.4, s=100)
-        plt.xlabel(descriptor_names[col], fontsize=20,)
-        plt.ylabel('Response', fontsize=20)
-        plt.show()
-
 
 if __name__ == '__main__':
-    main()
+    parser = ArgumentParser()
+    parser.add_argument('-x', help='Path of X.p')
+    parser.add_argument('-y', help='Path of y.p')
+    parser.add_argument('-ds', '--descriptor_names', 
+                        help='Path of descriptor_names.p')
+    args = parser.parse_args()
+    
+    X = pickle.load(open(args.x, "rb"))
+    y = pickle.load(open(args.y, "rb"))
+    descriptor_names = pickle.load(open(args.descriptor_names, "rb"))
+    
+    for col in range(X.shape[1]):
+        plt.hist(X[:, col], color='green')
+        plt.ylabel('Frequency', fontsize=20)
+        plt.xlabel(descriptor_names[col], fontsize=20)
+        plt.show()
+        continue
+        plt.scatter(X[:, col], y, c='red', alpha=0.4, s=100)
+        plt.xlabel(descriptor_names[col], fontsize=20)
+        plt.ylabel('Response', fontsize=20)
+        plt.show()
 
 
 
