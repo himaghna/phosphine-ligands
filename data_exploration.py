@@ -129,7 +129,7 @@ if __name__ == '__main__':
     parser = ArgumentParser()
     parser.add_argument('-x', help='Path of X.p')
     parser.add_argument('-y', help='Path of y.p')
-    parser.add_argument('-ds', '--descriptor_names', 
+    parser.add_argument('-dn', '--descriptor_names', 
                         help='Path of descriptor_names.p')
     args = parser.parse_args()
     
@@ -139,8 +139,10 @@ if __name__ == '__main__':
     
     for col in range(X.shape[1]):
         plt.hist(X[:, col], color='green')
-        plt.ylabel('Frequency', fontsize=20)
-        plt.xlabel(descriptor_names[col], fontsize=20)
+        plt.ylabel('Frequency', fontsize=28)
+        plt.xlabel(descriptor_names[col], fontsize=28)
+        plt.xticks(fontsize=20)
+        plt.yticks(fontsize=20)
         plt.show()
         continue
         plt.scatter(X[:, col], y, c='red', alpha=0.4, s=100)
