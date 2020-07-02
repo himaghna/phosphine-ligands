@@ -166,8 +166,10 @@ if __name__ == "__main__":
     X_new = (X_new * X_std + X_mean).numpy()
     for descr_id, descr_name in enumerate(descriptor_names):
         plt.hist(X_new[:, descr_id], color='red')
-        plt.ylabel('Frequency', fontsize=20)
-        plt.xlabel(descr_name, fontsize=20)
+        plt.ylabel('Frequency', fontsize=28)
+        plt.xlabel(descr_name, fontsize=28)
+        plt.xticks(fontsize=20)
+        plt.yticks(fontsize=20)
         plt.show()
     
     
