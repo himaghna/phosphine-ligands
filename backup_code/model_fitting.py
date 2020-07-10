@@ -20,14 +20,14 @@ from helper_functions import plot_parity
 processed_data = data_processing.main()
 X, y = processed_data['X'], processed_data['y'].reshape(-1,1)
 descriptor_names = processed_data['descriptor_names']
-family_idx = processed_data['family_int']
+
+#family_idx = processed_data['family_int']
+
 # Mask Family
-mask_id = 1
-idx = []
-for id, family_id in enumerate(family_idx):
-    if family_id == mask_id:
-        idx.append(id)
-X, y = X[idx], y[idx] 
+family_response_threshold = 4
+# only select ligands with response > threshold
+idx_mask = (y > family_response_threshold) 
+X, y = X[idx_mask], y[idx_mask] 
 # pyplot parameters
 plt.rcParams['svg.fonttype'] = 'none'
 plt.rc('xtick',labelsize=16)
