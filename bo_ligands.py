@@ -4,6 +4,8 @@ Description: Perform Bayesian Optimization on the California data set
 """
 
 from argparse import ArgumentParser
+import os.path
+from os import mkdir
 
 from botorch.acquisition.analytic import ExpectedImprovement
 from botorch.acquisition import qExpectedImprovement
@@ -58,10 +60,11 @@ def get_gpr_model(X, y, model=None):
     fit_gpytorch_model(mll);
     return model, mll
 
+
 def plot_testing(model, X_train, y_train, X_test, target, x_dim):
-    '''
+    """
     Test the surrogate model with model, test_X and new_X
-    '''
+    """
 
     # Initialize plot
     font = {'size'   : 20}
@@ -131,16 +134,22 @@ if __name__ == "__main__":
     parser = ArgumentParser()
     parser.add_argument('-x', help='Path of X.p')
     parser.add_argument('-y', help='Path of y.p')
-    parser.add_argument('-dn', '--descriptor_names', 
-        help='Path of pickle with descriptor names')
-    #parser.add_argument('-np', '--n_points', 
-     #   type=int,
-      #  help='Number of pooints to sample along each descriptor') 
+    parser.add_argument('-dn', '--descriptor_names',
+                        help='Path of pickle with descriptor names')
+    parser.add_argument('-od', '--output_dir', required=False, default=None,
+                        help='Optional output directory for saving images')
     args = parser.parse_args()
     
     X = torch.from_numpy(pickle.load(open(args.x, "rb"))).type(dtype)
     y = torch.from_numpy(pickle.load(open(args.y, "rb"))).type(dtype).reshape(-1, 1)
     descriptor_names = pickle.load(open(args.descriptor_names, "rb"))
+    output_dir = args.output_dir
+    # make directories
+    if output_dir is not None:
+        bo_dir = os.path.join(output_dir, 'BO_variable_distributions')
+        mkdir(bo_dir)
+    else:
+        bo_dir = None
 
     #explore_dataset(processed_data) # explore dataset
     # normalize X and y
@@ -158,19 +167,23 @@ if __name__ == "__main__":
                             torch.max(X, dim=0).values.view(1, -1)), 
                            dim=0)    # need to be (2 x D) tensor
     X_new = optimize_loop(model=gpr_model, 
-                  loss=gpr_mll, 
-                  X_train=X, 
-                  y_train=y, 
-                  bounds=opt_bounds, 
-                  n_samples=10)
+                          loss=gpr_mll,
+                          X_train=X,
+                          y_train=y,
+                          bounds=opt_bounds,
+                          n_samples=100)
     X_new = (X_new * X_std + X_mean).numpy()
     for descr_id, descr_name in enumerate(descriptor_names):
+        plt.clf()
         plt.hist(X_new[:, descr_id], color='red')
         plt.ylabel('Frequency', fontsize=28)
         plt.xlabel(descr_name, fontsize=28)
         plt.xticks(fontsize=20)
         plt.yticks(fontsize=20)
-        plt.show()
+        if bo_dir is not None:
+            plt.tight_layout()
+            plt.savefig(os.path.join(bo_dir,
+                                     f'{descr_name}_bo_distribution.svg'))
     
     
     
