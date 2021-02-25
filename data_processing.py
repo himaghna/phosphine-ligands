@@ -4,12 +4,13 @@ Description: Process data
 """
 from argparse import ArgumentParser
 import os.path
+import pickle
 
-import json
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-import pickle
+import yaml
+
 
 
 def process_data(df, target_column, descrptr_columns):
@@ -48,8 +49,8 @@ def generate_input(df, descrptr_columns, bins_upper_limit):
     X: numpy ndarray: Suitably transformed input  
     descriptor_names: List[str]: Descriptor names for columns of X
     """
-
-    # Define Globals
+    if bins_upper_limit is None:
+        return df[descrptr_columns].to_numpy(), descrptr_columns
     frequency_void_flag = -1
     frequency_columns = [ f'IR Frequency{frequency_index}' \
         for frequency_index in range(1, 7)]
@@ -215,14 +216,14 @@ if __name__ == '__main__':
     parser.add_argument('data_proc_config')
     args = parser.parse_args()
 
-    configs = json.load(open(args.data_proc_config))
+    configs = yaml.load(open(args.data_proc_config), Loader=yaml.FullLoader)
     xl_file = configs.get('xl_file')
     target_column = configs.get('target_column')
     descrptr_columns = configs.get('descrptr_columns')
-    bins_upper_limit = configs.get('bins_upper_limit')
+    bins_upper_limit = configs.get('bins_upper_limit', None)
     out_dir = configs.get('output_directory')
 
-    df = pd.read_excel(xl_file)
+    df = pd.read_excel(xl_file, engine='openpyxl')
     df = process_data(df, target_column, descrptr_columns)
     y = df[target_column].values
     X, descriptor_names = generate_input(df, descrptr_columns, bins_upper_limit)
@@ -237,6 +238,7 @@ if __name__ == '__main__':
     print(f'*** {target_column} ***')
     print(f'Mean: {np.mean(y)}')
     print(f'Std. Dev.: {np.std(y)}')
+    print('Descriptors: ', out_dict['descriptor_names'])
     plt.rcParams['svg.fonttype'] = 'none'
     plt.hist(y, color='orange')
     plt.xlabel(target_column, fontsize=20)

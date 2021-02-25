@@ -1,0 +1,9 @@
+# descriptors taken from Jackson's analysis of uncorrelated descriptor subset
+important_descriptors:
+  - L
+  - B1
+  - B5
+  - buried volume
+  - all frags P Mulliken Charge
+  - all frags HOMO-LUMO Gap
+  - all frags P NMR Shielding
