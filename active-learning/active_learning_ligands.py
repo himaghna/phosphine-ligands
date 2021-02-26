@@ -114,7 +114,7 @@ def plot_testing(model,
         lower, upper = posterior.mvn.confidence_region()
         X_test = X_test[:, VISUALIZATION_DIM]
         ax.plot(X_test.cpu().numpy(), y_test.cpu().numpy(), 
-                'silver', label=f'True {ylabel}')
+                'lightcoral', label=f'True {ylabel}')
         ax.plot(X_test.cpu().numpy(), posterior.mean.cpu().numpy(),
                 'b', label='Posterior Mean')
         ax.fill_between(X_test.cpu().numpy().squeeze(), 
