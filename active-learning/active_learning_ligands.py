@@ -19,6 +19,7 @@ import data_processing
 #device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 device = torch.device("cpu")
 dtype = torch.float64
+VISUALIZATION_DIM = 0
 
 
 def sort_tensor(inp_tensor, sort_column_id):
@@ -92,7 +93,7 @@ def get_gpr_model(X, y, model=None):
 def plot_testing(model, 
                  X_test, X_train, 
                  y_train, 
-                 visualization_dimension, xlabel,
+                 xlabel,
                  y_test=None,
                  X_new=None, y_new=None):
     font = {'size'   : 20}
@@ -104,13 +105,13 @@ def plot_testing(model,
     matplotlib.rcParams['ytick.major.width'] = 2
     hist_fig, ax = plt.subplots(figsize=(12, 6))
     model.eval();
-    X_test, idx = sort_tensor(X_test, sort_column_id=visualization_dimension)
+    X_test, idx = sort_tensor(X_test, sort_column_id=VISUALIZATION_DIM)
     y_test = y_test.index_select(0, idx)
 
     with torch.no_grad():
         posterior = model.posterior(X_test)
         lower, upper = posterior.mvn.confidence_region()
-        X_test = X_test[:, visualization_dimension]
+        X_test = X_test[:, VISUALIZATION_DIM]
         ax.plot(X_test.cpu().numpy(), y_test.cpu().numpy(), 
                 'k--', label='True y')
         ax.plot(X_test.cpu().numpy(), posterior.mean.cpu().numpy(),
@@ -118,12 +119,12 @@ def plot_testing(model,
         ax.fill_between(X_test.cpu().numpy().squeeze(), 
                         lower.cpu().numpy(), upper.cpu().numpy(), 
                         alpha=0.5, label='95% Credibility')   
-        ax.scatter(X_train[:, visualization_dimension].cpu().numpy(), 
+        ax.scatter(X_train[:, VISUALIZATION_DIM].cpu().numpy(), 
                    y_train.cpu().numpy(),
                    s=120, c='k', marker='*', label='Training Data')
 
         if X_new is not None:    
-            ax.scatter(X_new[:, visualization_dimension].cpu().numpy(), 
+            ax.scatter(X_new[:, VISUALIZATION_DIM].cpu().numpy(), 
                        y_new.cpu().numpy(),
                        s=120, c='r', marker='*', label='Infill Data')
         
@@ -133,29 +134,29 @@ def plot_testing(model,
     plt.tight_layout()
     plt.show()
 
-def plot_acq_func(acq_func, X_test, X_train, visualization_dimension, X_new=None):
+def plot_acq_func(acq_func, X_test, X_train, xlabel, X_new=None):
     test_acq_val = acq_func(X_test.view((X_test.shape[0], 1, X_test.shape[1])))
     hist_fig, ax = plt.subplots(figsize=(12, 6))
     with torch.no_grad():
-        ax.scatter(X_test[:, visualization_dimension].cpu().numpy(), 
+        ax.scatter(X_test[:, VISUALIZATION_DIM].cpu().numpy(), 
                    test_acq_val.cpu().detach(), 
                    c='blue', s=120, alpha=0.7, label='Acquisition (EI)')
         if X_new is not None: 
             new_acq_val = acq_func(X_new.view((X_new.shape[0], 
                                                1, 
                                                X_new.shape[1])))
-            ax.scatter(X_new[:, visualization_dimension].cpu().numpy(),
+            ax.scatter(X_new[:, VISUALIZATION_DIM].cpu().numpy(),
                        new_acq_val.cpu().detach(),
                        s=120, c='r', marker='*', label='Infill Data')
     
     ax.ticklabel_format(style='sci', axis='y', scilimits=(-2,2) )
-    ax.set_xlabel('x', fontsize=20)
+    ax.set_xlabel(xlabel, fontsize=20)
     ax.set_ylabel(r'$ \alpha$', fontsize=20)    
     ax.legend(loc='center left', bbox_to_anchor=(1, 0.5))
     plt.tight_layout()
     plt.show()
 
-def optimize_loop(model, loss, X_train, y_train, X_test, y_test, bounds):
+def optimize_loop(model, loss, X_train, y_train, X_test, y_test, bounds, xlabel):
     best_value = y_train.max()
     acq_func = ExpectedImprovement(model, best_f=best_value, maximize=True)
     acq_vals = acq_func(X_test.view((X_test.shape[0], 1, X_test.shape[1])))
@@ -165,9 +166,7 @@ def optimize_loop(model, loss, X_train, y_train, X_test, y_test, bounds):
     y_test_new, y_new = tensor_pop(inp_tensor=y_test,
         to_pop=max_acqf_id.cpu().numpy())
     plot_acq_func(acq_func, 
-                  X_test=X_test, X_train=X_train, 
-                  visualization_dimension=0,
-                  X_new=X_new)
+                  X_test=X_test, X_train=X_train, xlabel=xlabel, X_new=X_new)
     gpr_model, gpr_mll = get_gpr_model(X_new, y_new, model=model)
     X_train_new = torch.cat((X_train, X_new))
     y_train_new = torch.cat((y_train, y_new))
@@ -193,7 +192,8 @@ def main():
     X = torch.from_numpy(pickle.load(open(configs.get('X'), "rb"))).type(dtype)
     y = torch.from_numpy(pickle.load(open(configs.get('y'), "rb"))
                         ).type(dtype).reshape(-1, 1)
-
+    descriptor_names = pickle.load(open(configs.get('descriptor_names'), "rb"))
+    xlabel = descriptor_names[VISUALIZATION_DIM]
     y_scale = y.std(dim=0)
     y_mean = y.mean(dim=0)
     X_mean = X.mean(dim=0)
@@ -203,6 +203,7 @@ def main():
     proportion_of_dataset_for_seeding = float(
                                   configs.get('proportion_of_dataset_for_seeding'))
     initial_data_size = int(proportion_of_dataset_for_seeding * X.shape[0])
+    print(f'Using {initial_data_size} / {X.shape[0]} points for initial seeding')
     np.random.seed(int(configs.get('random_seed')))
     initial_idx = list(np.random.choice(X.shape[0], 
                        initial_data_size,
@@ -216,8 +217,7 @@ def main():
                  X_train=X_train, 
                  y_train=y_train,
                  y_test=y,
-                 visualization_dimension=1, 
-                 xlabel='Dimension 1')
+                 xlabel=xlabel)
     opt_bounds = torch.stack([X.min(dim=0).values, X.max(dim=0).values])
     max_val, upper_confidence, lower_confidence = [], [], []
     for _ in range(configs.get('n_optimization_steps')):
@@ -235,7 +235,8 @@ def main():
                                       y_train=y_train,
                                       X_test=X_test, 
                                       y_test=y_test,
-                                      bounds=opt_bounds)
+                                      bounds=opt_bounds,
+                                      xlabel=xlabel)
         gpr_model, gpr_mll = updated_model['model'], updated_model['loss']
         X_train, y_train = updated_model['X_train'], updated_model['y_train']
         X_test, y_test = updated_model['X_test'], updated_model['y_test']
@@ -243,7 +244,7 @@ def main():
         plot_testing(gpr_model, 
                      X_test=X, X_train=X_train, 
                      y_test=y, y_train=y_train,
-                     visualization_dimension=1, xlabel='Dimension 1',
+                     xlabel=xlabel,
                      X_new=X_new, y_new=y_new)
         
     plt.plot([_ for _ in range(configs.get('n_optimization_steps'))], max_val, 
