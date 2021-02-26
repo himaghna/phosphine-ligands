@@ -1,5 +1,6 @@
 """ Active learning of ligands"""
 from argparse import ArgumentParser
+import pickle
 
 import matplotlib
 import matplotlib.pyplot as plt
@@ -15,7 +16,8 @@ import yaml
 import data_processing
 
 
-device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+#device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+device = torch.device("cpu")
 dtype = torch.float64
 
 
@@ -116,7 +118,8 @@ def plot_testing(model,
         ax.fill_between(X_test.cpu().numpy().squeeze(), 
                         lower.cpu().numpy(), upper.cpu().numpy(), 
                         alpha=0.5, label='95% Credibility')   
-        ax.scatter(X_train[:, x_dim].cpu().numpy(), y_train.cpu().numpy(),
+        ax.scatter(X_train[:, visualization_dimension].cpu().numpy(), 
+                   y_train.cpu().numpy(),
                    s=120, c='k', marker='*', label='Training Data')
 
         if X_new is not None:    
@@ -161,7 +164,10 @@ def optimize_loop(model, loss, X_train, y_train, X_test, y_test, bounds):
         to_pop=max_acqf_id.cpu().numpy())
     y_test_new, y_new = tensor_pop(inp_tensor=y_test,
         to_pop=max_acqf_id.cpu().numpy())
-    plot_acq_func(acq_func, X_test=X_test, X_train=X_train, X_new=X_new)
+    plot_acq_func(acq_func, 
+                  X_test=X_test, X_train=X_train, 
+                  visualization_dimension=0,
+                  X_new=X_new)
     gpr_model, gpr_mll = get_gpr_model(X_new, y_new, model=model)
     X_train_new = torch.cat((X_train, X_new))
     y_train_new = torch.cat((y_train, y_new))
@@ -181,7 +187,7 @@ def main():
     parser = ArgumentParser()
     parser.add_argument('config', help='config yaml')
     args = parser.parse_args()
-    with open(config, "r") as fp:
+    with open(args.config, "r") as fp:
         configs = yaml.load(fp, Loader=yaml.FullLoader)
 
     X = torch.from_numpy(pickle.load(open(configs.get('X'), "rb"))).type(dtype)
@@ -194,9 +200,10 @@ def main():
     X_std = X.std(dim=0)
     X = (X - X_mean) / X_std
     y = (y - y_mean) / y_scale
-    proportion_of_dataset_for_seeding = args.get(
-                                            'proportion_of_dataset_for_seeding')
+    proportion_of_dataset_for_seeding = float(
+                                  configs.get('proportion_of_dataset_for_seeding'))
     initial_data_size = int(proportion_of_dataset_for_seeding * X.shape[0])
+    np.random.seed(int(configs.get('random_seed')))
     initial_idx = list(np.random.choice(X.shape[0], 
                        initial_data_size,
                        replace=False))
