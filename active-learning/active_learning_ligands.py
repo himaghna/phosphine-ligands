@@ -139,7 +139,7 @@ def plot_acq_func(acq_func, X_test, X_train, visualization_dimension, X_new=None
     with torch.no_grad():
         ax.scatter(X_test[:, visualization_dimension].cpu().numpy(), 
                    test_acq_val.cpu().detach(), 
-                   c='blue', s=1.2, alpha=0.7, label='Acquisition (EI)')
+                   c='blue', s=120, alpha=0.7, label='Acquisition (EI)')
         if X_new is not None: 
             new_acq_val = acq_func(X_new.view((X_new.shape[0], 
                                                1, 
@@ -237,7 +237,7 @@ def main():
                                       y_test=y_test,
                                       bounds=opt_bounds)
         gpr_model, gpr_mll = updated_model['model'], updated_model['loss']
-        X_train, y_train =  updated_model['X_train'], updated_model['y_train']
+        X_train, y_train = updated_model['X_train'], updated_model['y_train']
         X_test, y_test = updated_model['X_test'], updated_model['y_test']
         X_new, y_new = updated_model['X_new'], updated_model['y_new']
         plot_testing(gpr_model, 
