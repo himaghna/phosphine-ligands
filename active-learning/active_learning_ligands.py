@@ -19,7 +19,7 @@ import data_processing
 #device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 device = torch.device("cpu")
 dtype = torch.float64
-VISUALIZATION_DIM = 0
+VISUALIZATION_DIM = 1
 
 
 def sort_tensor(inp_tensor, sort_column_id):
@@ -94,7 +94,7 @@ def plot_testing(model,
                  X_test, X_train, 
                  y_train, 
                  xlabel,
-                 ylabel,
+                 ylabel, y_scale, y_mean,
                  y_test=None,
                  X_new=None, y_new=None):
     font = {'size'   : 20}
@@ -111,11 +111,16 @@ def plot_testing(model,
 
     with torch.no_grad():
         posterior = model.posterior(X_test)
+        posterior_mean = posterior.mean.cpu().numpy()
         lower, upper = posterior.mvn.confidence_region()
+        mean_absolute_error = get_mean_absolute_error(y_true=y_test, 
+                                                      y_predicted=posterior_mean)
+        mean_absolute_error = float(((mean_absolute_error * y_scale) + y_mean)
+                                    .cpu().numpy())
         X_test = X_test[:, VISUALIZATION_DIM]
         ax.plot(X_test.cpu().numpy(), y_test.cpu().numpy(), 
                 'lightcoral', label=f'True {ylabel}')
-        ax.plot(X_test.cpu().numpy(), posterior.mean.cpu().numpy(),
+        ax.plot(X_test.cpu().numpy(), posterior_mean,
                 'b', label='Posterior Mean')
         ax.fill_between(X_test.cpu().numpy().squeeze(), 
                         lower.cpu().numpy(), upper.cpu().numpy(), 
@@ -131,9 +136,22 @@ def plot_testing(model,
         
     ax.set_xlabel(xlabel, fontsize=20)
     ax.set_ylabel(ylabel, fontsize=20)
+    plt.text(0.7,  0.9, 'MAE: {:.2f}'.format(mean_absolute_error), 
+             transform=ax.transAxes, fontsize=16)
     ax.legend(loc='center left', bbox_to_anchor=(1, 0.5))
     plt.tight_layout()
     plt.show()
+
+def get_mean_absolute_error(y_true, y_predicted):
+    """
+    y_true: torch Tensor
+        True response.
+    y_predicted: torch Tensor
+        Predicted response.
+
+    """
+    abs_error = torch.abs(y_true - y_predicted)
+    return torch.mean(abs_error, axis=0)
 
 def plot_acq_func(acq_func, X_test, X_train, xlabel, X_new=None):
     test_acq_val = acq_func(X_test.view((X_test.shape[0], 1, X_test.shape[1])))
@@ -220,7 +238,7 @@ def main():
                  y_train=y_train,
                  y_test=y,
                  xlabel=xlabel,
-                 ylabel=ylabel)
+                 ylabel=ylabel, y_scale=y_scale, y_mean=y_mean)
     opt_bounds = torch.stack([X.min(dim=0).values, X.max(dim=0).values])
     max_val, upper_confidence, lower_confidence = [], [], []
     for _ in range(configs.get('n_optimization_steps')):
@@ -248,7 +266,7 @@ def main():
                      X_test=X, X_train=X_train, 
                      y_test=y, y_train=y_train,
                      xlabel=xlabel, ylabel=ylabel,
-                     X_new=X_new, y_new=y_new)
+                     X_new=X_new, y_new=y_new, y_scale=y_scale, y_mean=y_mean)
         
     # plt.plot([_ for _ in range(configs.get('n_optimization_steps'))], max_val, 
     #          'go--', linewidth=2, markersize=12)
