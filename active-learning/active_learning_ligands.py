@@ -207,6 +207,24 @@ def optimize_loop(model, loss, X_train, y_train, X_test, y_test, bounds, xlabel)
         'y_new': y_new,
     }
 
+def plot_maes(maes):
+    """Plot the Mean Absolute Errors
+
+    Parameters
+    ----------
+    maes: List(float)
+
+    """
+    plt.rcParams['svg.fonttype'] = 'none'
+    plt.plot([0.1 * i for i in range(len(maes))], maes,
+             marker='s', markerfacecolor='m', markeredgecolor='black', 
+             c='m', markersize=30,
+             markeredgewidth=2)
+    plt.xticks(fontsize=24)
+    plt.yticks(fontsize=24)
+    plt.xlabel('Optimization Step')
+    plt.ylabel('Test MAE')
+    plt.show()
     
 def main():
     parser = ArgumentParser()
@@ -237,6 +255,7 @@ def main():
                        replace=False))
     X_test, X_train = tensor_pop(X, to_pop=initial_idx)
     y_test, y_train = tensor_pop(y, to_pop=initial_idx)
+    maes = []
     
     gpr_model, gpr_mll = get_gpr_model(X=X_train, y=y_train)
     mean_absolute_error = get_mean_absolute_error(X_test=X_test, 
@@ -244,6 +263,7 @@ def main():
                                                   gpr_model=gpr_model, 
                                                   y_mean=y_mean, 
                                                   y_scale=y_scale)
+    maes.append(mean_absolute_error)
     plot_testing(gpr_model, 
                  X_test=X, 
                  X_train=X_train, 
@@ -271,12 +291,15 @@ def main():
                                                       gpr_model=gpr_model, 
                                                       y_mean=y_mean, 
                                                       y_scale=y_scale)
+        maes.append(mean_absolute_error)
         plot_testing(gpr_model, 
                      X_test=X, X_train=X_train, 
                      y_test=y, y_train=y_train,
                      xlabel=xlabel, ylabel=ylabel,
                      X_new=X_new, y_new=y_new, 
                      mean_absolute_error=mean_absolute_error)
+        
+    plot_maes(maes)
         
     # plt.plot([_ for _ in range(configs.get('n_optimization_steps'))], max_val, 
     #          'go--', linewidth=2, markersize=12)
