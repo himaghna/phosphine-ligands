@@ -94,6 +94,7 @@ def plot_testing(model,
                  X_test, X_train, 
                  y_train, 
                  xlabel,
+                 ylabel,
                  y_test=None,
                  X_new=None, y_new=None):
     font = {'size'   : 20}
@@ -113,7 +114,7 @@ def plot_testing(model,
         lower, upper = posterior.mvn.confidence_region()
         X_test = X_test[:, VISUALIZATION_DIM]
         ax.plot(X_test.cpu().numpy(), y_test.cpu().numpy(), 
-                'k--', label='True y')
+                'k--', label=f'True {ylabel}')
         ax.plot(X_test.cpu().numpy(), posterior.mean.cpu().numpy(),
                 'b', label='Posterior Mean')
         ax.fill_between(X_test.cpu().numpy().squeeze(), 
@@ -129,7 +130,7 @@ def plot_testing(model,
                        s=120, c='r', marker='*', label='Infill Data')
         
     ax.set_xlabel(xlabel, fontsize=20)
-    ax.set_ylabel('y', fontsize=20)
+    ax.set_ylabel(ylabel, fontsize=20)
     ax.legend(loc='center left', bbox_to_anchor=(1, 0.5))
     plt.tight_layout()
     plt.show()
@@ -193,6 +194,7 @@ def main():
     y = torch.from_numpy(pickle.load(open(configs.get('y'), "rb"))
                         ).type(dtype).reshape(-1, 1)
     descriptor_names = pickle.load(open(configs.get('descriptor_names'), "rb"))
+    ylabel = configs.get('response')
     xlabel = descriptor_names[VISUALIZATION_DIM]
     y_scale = y.std(dim=0)
     y_mean = y.mean(dim=0)
@@ -217,7 +219,8 @@ def main():
                  X_train=X_train, 
                  y_train=y_train,
                  y_test=y,
-                 xlabel=xlabel)
+                 xlabel=xlabel,
+                 ylabel=ylabel)
     opt_bounds = torch.stack([X.min(dim=0).values, X.max(dim=0).values])
     max_val, upper_confidence, lower_confidence = [], [], []
     for _ in range(configs.get('n_optimization_steps')):
@@ -244,7 +247,7 @@ def main():
         plot_testing(gpr_model, 
                      X_test=X, X_train=X_train, 
                      y_test=y, y_train=y_train,
-                     xlabel=xlabel,
+                     xlabel=xlabel, ylabel=ylabel,
                      X_new=X_new, y_new=y_new)
         
     plt.plot([_ for _ in range(configs.get('n_optimization_steps'))], max_val, 
