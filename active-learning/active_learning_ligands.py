@@ -114,7 +114,7 @@ def plot_testing(model,
         lower, upper = posterior.mvn.confidence_region()
         X_test = X_test[:, VISUALIZATION_DIM]
         ax.plot(X_test.cpu().numpy(), y_test.cpu().numpy(), 
-                'k--', label=f'True {ylabel}')
+                'silver', label=f'True {ylabel}')
         ax.plot(X_test.cpu().numpy(), posterior.mean.cpu().numpy(),
                 'b', label='Posterior Mean')
         ax.fill_between(X_test.cpu().numpy().squeeze(), 
@@ -122,12 +122,12 @@ def plot_testing(model,
                         alpha=0.5, label='95% Credibility')   
         ax.scatter(X_train[:, VISUALIZATION_DIM].cpu().numpy(), 
                    y_train.cpu().numpy(),
-                   s=120, c='k', marker='*', label='Training Data')
+                   s=150, c='m', marker='*', label='Training Data')
 
         if X_new is not None:    
             ax.scatter(X_new[:, VISUALIZATION_DIM].cpu().numpy(), 
                        y_new.cpu().numpy(),
-                       s=120, c='r', marker='*', label='Infill Data')
+                       s=150, c='r', marker='*', label='Infill Data')
         
     ax.set_xlabel(xlabel, fontsize=20)
     ax.set_ylabel(ylabel, fontsize=20)
@@ -250,12 +250,12 @@ def main():
                      xlabel=xlabel, ylabel=ylabel,
                      X_new=X_new, y_new=y_new)
         
-    plt.plot([_ for _ in range(configs.get('n_optimization_steps'))], max_val, 
-             'go--', linewidth=2, markersize=12)
-    plt.fill_between([_ for _ in range(configs.get('n_optimization_steps'))], 
-                     lower_confidence, upper_confidence, 
-                     alpha=0.5, label = '95% Credibility')
-    plt.show()
+    # plt.plot([_ for _ in range(configs.get('n_optimization_steps'))], max_val, 
+    #          'go--', linewidth=2, markersize=12)
+    # plt.fill_between([_ for _ in range(configs.get('n_optimization_steps'))], 
+    #                  lower_confidence, upper_confidence, 
+    #                  alpha=0.5, label = '95% Credibility')
+    # plt.show()
 
 if __name__ == "__main__":
     main()
