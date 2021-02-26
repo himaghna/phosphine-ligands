@@ -94,8 +94,8 @@ def plot_testing(model,
                  X_test, X_train, 
                  y_train, 
                  xlabel,
-                 ylabel, y_scale, y_mean,
-                 y_test=None,
+                 ylabel,
+                 y_test=None, mean_absolute_error=None,
                  X_new=None, y_new=None):
     font = {'size'   : 20}
     matplotlib.rc('font', **font)
@@ -113,10 +113,6 @@ def plot_testing(model,
         posterior = model.posterior(X_test)
         posterior_mean = posterior.mean.cpu().numpy()
         lower, upper = posterior.mvn.confidence_region()
-        mean_absolute_error = get_mean_absolute_error(y_true=y_test, 
-                                                      y_predicted=posterior_mean)
-        mean_absolute_error = float(((mean_absolute_error * y_scale) + y_mean)
-                                    .cpu().numpy())
         X_test = X_test[:, VISUALIZATION_DIM]
         ax.plot(X_test.cpu().numpy(), y_test.cpu().numpy(), 
                 'lightcoral', label=f'True {ylabel}')
@@ -136,22 +132,33 @@ def plot_testing(model,
         
     ax.set_xlabel(xlabel, fontsize=20)
     ax.set_ylabel(ylabel, fontsize=20)
-    plt.text(0.7,  0.9, 'MAE: {:.2f}'.format(mean_absolute_error), 
-             transform=ax.transAxes, fontsize=16)
+    if mean_absolute_error is not None:
+        plt.text(0.7,  0.9, 'MAE: {:.2f}'.format(mean_absolute_error), 
+                transform=ax.transAxes, fontsize=16)
     ax.legend(loc='center left', bbox_to_anchor=(1, 0.5))
     plt.tight_layout()
     plt.show()
 
-def get_mean_absolute_error(y_true, y_predicted):
+def get_mean_absolute_error(X_test, y_test, gpr_model, y_mean=None, y_scale=None):
     """
     y_true: torch Tensor
         True response.
     y_predicted: torch Tensor
         Predicted response.
+    
+    Returns
+    -------
+    float
+        Mean Absolute Error
 
     """
-    abs_error = torch.abs(y_true - y_predicted)
-    return torch.mean(abs_error, axis=0)
+    with torch.no_grad():
+        gpr_model.eval();
+        posterior = gpr_model.posterior(X_test)
+        abs_error = torch.abs(y_test - posterior.mean)
+        if y_mean is not None and y_scale is not None:
+            abs_error = abs_error * y_scale + y_mean
+    return float(torch.mean(abs_error, axis=0).cpu().numpy())
 
 def plot_acq_func(acq_func, X_test, X_train, xlabel, X_new=None):
     test_acq_val = acq_func(X_test.view((X_test.shape[0], 1, X_test.shape[1])))
@@ -230,26 +237,23 @@ def main():
                        replace=False))
     X_test, X_train = tensor_pop(X, to_pop=initial_idx)
     y_test, y_train = tensor_pop(y, to_pop=initial_idx)
-
+    
     gpr_model, gpr_mll = get_gpr_model(X=X_train, y=y_train)
+    mean_absolute_error = get_mean_absolute_error(X_test=X_test, 
+                                                  y_test=y_test, 
+                                                  gpr_model=gpr_model, 
+                                                  y_mean=y_mean, 
+                                                  y_scale=y_scale)
     plot_testing(gpr_model, 
                  X_test=X, 
                  X_train=X_train, 
                  y_train=y_train,
                  y_test=y,
                  xlabel=xlabel,
-                 ylabel=ylabel, y_scale=y_scale, y_mean=y_mean)
+                 ylabel=ylabel,
+                 mean_absolute_error=mean_absolute_error)
     opt_bounds = torch.stack([X.min(dim=0).values, X.max(dim=0).values])
-    max_val, upper_confidence, lower_confidence = [], [], []
     for _ in range(configs.get('n_optimization_steps')):
-        gpr_model.eval();
-        posterior = gpr_model.posterior(X)
-        lower, upper = posterior.mvn.confidence_region()
-        max_posterior, index = posterior.mean.max(dim=0)
-        max_val.append(float(max_posterior * y_scale + y_mean))
-        upper_confidence.append(float(upper[index] * y_scale + y_mean))
-        lower_confidence.append(float(lower[index] * y_scale + y_mean))
-
         updated_model = optimize_loop(model=gpr_model,
                                       loss=gpr_mll, 
                                       X_train=X_train, 
@@ -262,11 +266,17 @@ def main():
         X_train, y_train = updated_model['X_train'], updated_model['y_train']
         X_test, y_test = updated_model['X_test'], updated_model['y_test']
         X_new, y_new = updated_model['X_new'], updated_model['y_new']
+        mean_absolute_error = get_mean_absolute_error(X_test=X_test, 
+                                                      y_test=y_test, 
+                                                      gpr_model=gpr_model, 
+                                                      y_mean=y_mean, 
+                                                      y_scale=y_scale)
         plot_testing(gpr_model, 
                      X_test=X, X_train=X_train, 
                      y_test=y, y_train=y_train,
                      xlabel=xlabel, ylabel=ylabel,
-                     X_new=X_new, y_new=y_new, y_scale=y_scale, y_mean=y_mean)
+                     X_new=X_new, y_new=y_new, 
+                     mean_absolute_error=mean_absolute_error)
         
     # plt.plot([_ for _ in range(configs.get('n_optimization_steps'))], max_val, 
     #          'go--', linewidth=2, markersize=12)
