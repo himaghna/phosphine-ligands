@@ -1,6 +1,8 @@
 """ Active learning of ligands"""
 from argparse import ArgumentParser
 import pickle
+from os import mkdir
+from os.path import isdir, join
 
 import matplotlib
 import matplotlib.pyplot as plt
@@ -20,6 +22,7 @@ import data_processing
 device = torch.device("cpu")
 dtype = torch.float64
 VISUALIZATION_DIM = 1
+INTERACTIVE = False
 
 
 def sort_tensor(inp_tensor, sort_column_id):
@@ -96,9 +99,10 @@ def plot_testing(model,
                  xlabel,
                  ylabel,
                  y_test=None, mean_absolute_error=None,
-                 X_new=None, y_new=None):
+                 X_new=None, y_new=None, out_dir=None, out_fname=None):
     font = {'size'   : 20}
     matplotlib.rc('font', **font)
+    plt.rcParams['svg.fonttype'] = 'none'
     matplotlib.rcParams['axes.linewidth'] = 1.5
     matplotlib.rcParams['xtick.major.size'] = 8
     matplotlib.rcParams['xtick.major.width'] = 2
@@ -137,7 +141,17 @@ def plot_testing(model,
                 transform=ax.transAxes, fontsize=16)
     ax.legend(loc='center left', bbox_to_anchor=(1, 0.5))
     plt.tight_layout()
-    plt.show()
+    if INTERACTIVE:
+        plt.show()
+    else:
+        if not isdir(out_dir):
+            mkdir(out_dir)
+        subdir = join(out_dir, 'test-plots')
+        if not isdir(subdir):
+            mkdir(subdir)
+        out_fpath = join(subdir, out_fname+'.svg')
+        plt.savefig(out_fpath)
+        plt.clf()
 
 def get_mean_absolute_error(X_test, y_test, gpr_model, y_mean=None, y_scale=None):
     """
@@ -160,7 +174,8 @@ def get_mean_absolute_error(X_test, y_test, gpr_model, y_mean=None, y_scale=None
             abs_error = abs_error * y_scale + y_mean
     return float(torch.mean(abs_error, axis=0).cpu().numpy())
 
-def plot_acq_func(acq_func, X_test, X_train, xlabel, X_new=None):
+def plot_acq_func(acq_func, X_test, X_train, xlabel, 
+                  X_new=None, out_dir=None, out_fname=None):
     test_acq_val = acq_func(X_test.view((X_test.shape[0], 1, X_test.shape[1])))
     hist_fig, ax = plt.subplots(figsize=(12, 6))
     with torch.no_grad():
@@ -180,7 +195,17 @@ def plot_acq_func(acq_func, X_test, X_train, xlabel, X_new=None):
     ax.set_ylabel(r'$ \alpha$', fontsize=20)    
     ax.legend(loc='center left', bbox_to_anchor=(1, 0.5))
     plt.tight_layout()
-    plt.show()
+    if INTERACTIVE:
+        plt.show()
+    else:
+        if not isdir(out_dir):
+            mkdir(out_dir)
+        subdir = join(out_dir, 'acq-plots')
+        if not isdir(subdir):
+            mkdir(subdir)
+        out_fpath = join(subdir, out_fname+'.svg')
+        plt.savefig(out_fpath)
+        plt.clf()
 
 def optimize_loop(model, loss, X_train, y_train, X_test, y_test, bounds, xlabel):
     best_value = y_train.max()
@@ -191,8 +216,9 @@ def optimize_loop(model, loss, X_train, y_train, X_test, y_test, bounds, xlabel)
         to_pop=max_acqf_id.cpu().numpy())
     y_test_new, y_new = tensor_pop(inp_tensor=y_test,
         to_pop=max_acqf_id.cpu().numpy())
-    plot_acq_func(acq_func, 
-                  X_test=X_test, X_train=X_train, xlabel=xlabel, X_new=X_new)
+    if INTERACTIVE:
+        plot_acq_func(acq_func, 
+                    X_test=X_test, X_train=X_train, xlabel=xlabel, X_new=X_new)
     gpr_model, gpr_mll = get_gpr_model(X_new, y_new, model=model)
     X_train_new = torch.cat((X_train, X_new))
     y_train_new = torch.cat((y_train, y_new))
@@ -207,7 +233,7 @@ def optimize_loop(model, loss, X_train, y_train, X_test, y_test, bounds, xlabel)
         'y_new': y_new,
     }
 
-def plot_maes(maes):
+def plot_maes(maes, out_dir):
     """Plot the Mean Absolute Errors
 
     Parameters
@@ -224,7 +250,14 @@ def plot_maes(maes):
     plt.yticks(fontsize=24)
     plt.xlabel('Optimization Step')
     plt.ylabel('Test MAE')
-    plt.show()
+    if INTERACTIVE:
+        plt.show()
+    else:
+        if not isdir(out_dir):
+            mkdir(out_dir)
+        out_fpath = join(out_dir, 'mae-plot.svg')
+        plt.savefig(out_fpath)
+        plt.clf()
     
 def main():
     parser = ArgumentParser()
@@ -237,6 +270,7 @@ def main():
     y = torch.from_numpy(pickle.load(open(configs.get('y'), "rb"))
                         ).type(dtype).reshape(-1, 1)
     descriptor_names = pickle.load(open(configs.get('descriptor_names'), "rb"))
+    output_base_dir = configs.get('output_dir')
     ylabel = configs.get('response')
     xlabel = descriptor_names[VISUALIZATION_DIM]
     y_scale = y.std(dim=0)
@@ -271,7 +305,8 @@ def main():
                  y_test=y,
                  xlabel=xlabel,
                  ylabel=ylabel,
-                 mean_absolute_error=mean_absolute_error)
+                 mean_absolute_error=mean_absolute_error,
+                 out_dir=output_base_dir, out_fname='initial')
     opt_bounds = torch.stack([X.min(dim=0).values, X.max(dim=0).values])
     for _ in range(configs.get('n_optimization_steps')):
         updated_model = optimize_loop(model=gpr_model,
@@ -297,9 +332,10 @@ def main():
                      y_test=y, y_train=y_train,
                      xlabel=xlabel, ylabel=ylabel,
                      X_new=X_new, y_new=y_new, 
-                     mean_absolute_error=mean_absolute_error)
+                     mean_absolute_error=mean_absolute_error,
+                     out_dir=output_base_dir, out_fname='image'+str(_+1))
         
-    plot_maes(maes)
+    plot_maes(maes, out_dir=output_base_dir)
         
     # plt.plot([_ for _ in range(configs.get('n_optimization_steps'))], max_val, 
     #          'go--', linewidth=2, markersize=12)
