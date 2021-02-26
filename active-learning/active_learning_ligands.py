@@ -144,7 +144,7 @@ def plot_acq_func(acq_func, X_test, X_train, visualization_dimension, X_new=None
             new_acq_val = acq_func(X_new.view((X_new.shape[0], 
                                                1, 
                                                X_new.shape[1])))
-            ax.scatter(X_new[:, x_visualize_dim].cpu().numpy(),
+            ax.scatter(X_new[:, visualization_dimension].cpu().numpy(),
                        new_acq_val.cpu().detach(),
                        s=120, c='r', marker='*', label='Infill Data')
     
@@ -246,10 +246,10 @@ def main():
                      visualization_dimension=1, xlabel='Dimension 1',
                      X_new=X_new, y_new=y_new)
         
-    plt.plot([_ for _ in configs.get('n_optimization_steps')], max_val, 
+    plt.plot([_ for _ in range(configs.get('n_optimization_steps'))], max_val, 
              'go--', linewidth=2, markersize=12)
-    plt.fill_between([_ for _ in range(N_OPT_STEPS)], lower_confidence, 
-                     upper_confidence, 
+    plt.fill_between([_ for _ in range(configs.get('n_optimization_steps'))], 
+                     lower_confidence, upper_confidence, 
                      alpha=0.5, label = '95% Credibility')
     plt.show()
 
