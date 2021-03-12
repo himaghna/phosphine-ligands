@@ -248,7 +248,7 @@ if __name__ == '__main__':
     X_path = os.path.join(out_dir, 'X.p')
     print(f'Writing {X_path}...')
     pickle.dump(X, open(X_path, "wb"))
-    y_path = os.path.join(out_dir, 'y.p')
+    y_path = os.path.join(out_dir, f'y_{target_column}.p')
     print(f'Writing {y_path}...')
     pickle.dump(y, open(y_path, "wb"))
     descriptor_names_path = os.path.join(out_dir, 'descriptor_names.p')
