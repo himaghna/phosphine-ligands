@@ -233,23 +233,45 @@ def optimize_loop(model, loss, X_train, y_train, X_test, y_test, bounds, xlabel)
         'y_new': y_new,
     }
 
-def plot_maes(maes, out_dir):
+def plot_maes(maes, out_dir, response_name, 
+              mae_scale=None, mae_scale_label='MAE scale'):
     """Plot the Mean Absolute Errors
 
     Parameters
     ----------
     maes: List(float)
+        Sequence of maes.
+    out_dir: str
+        Path of directory to output plot.
+    response_name: str
+        Label of the response.
+    mae_scale: float
+        All maes are scaled with resepect to this.
+    mae_scale_label: str
+        Label for the mae scaling factor.
 
     """
     plt.rcParams['svg.fonttype'] = 'none'
-    plt.plot([0.1 * i for i in range(len(maes))], maes,
+    x_label = 'Optimization Step'
+    y_label = f'{response_name} Test MAE'
+    legend_prefix = 'Minimum MAE'
+    if mae_scale:
+        maes = [mae / mae_scale for mae in maes]
+        y_label += f' Scaled by {mae_scale_label}' 
+        legend_prefix += f' / {mae_scale_label}'
+
+    plt.plot([_ for _ in range(len(maes))], maes,
              marker='s', markerfacecolor='m', markeredgecolor='black', 
-             c='m', markersize=30,
-             markeredgewidth=2)
+             c='m', markersize=0.1,
+             markeredgewidth=0.01)
     plt.xticks(fontsize=24)
     plt.yticks(fontsize=24)
-    plt.xlabel('Optimization Step')
-    plt.ylabel('Test MAE')
+    plt.xlabel(x_label)
+    plt.ylabel(y_label)
+    plt.text(0.2, 0.9,
+             legend_prefix + ': {:.2f}'.format(min(maes)), 
+             transform=plt.gca().transAxes,
+             fontsize=16)
     if INTERACTIVE:
         plt.show()
     else:
@@ -269,6 +291,7 @@ def main():
     X = torch.from_numpy(pickle.load(open(configs.get('X'), "rb"))).type(dtype)
     y = torch.from_numpy(pickle.load(open(configs.get('y'), "rb"))
                         ).type(dtype).reshape(-1, 1)
+    y_range = float(torch.max(y).numpy() - torch.min(y).numpy())
     descriptor_names = pickle.load(open(configs.get('descriptor_names'), "rb"))
     output_base_dir = configs.get('output_dir')
     ylabel = configs.get('response')
@@ -335,7 +358,11 @@ def main():
                      mean_absolute_error=mean_absolute_error,
                      out_dir=output_base_dir, out_fname='image'+str(_+1))
         
-    plot_maes(maes, out_dir=output_base_dir)
+    plot_maes(maes, 
+              out_dir=output_base_dir, 
+              mae_scale=y_range, 
+              mae_scale_label='Range',
+              response_name=configs.get('response').upper())
         
     # plt.plot([_ for _ in range(configs.get('n_optimization_steps'))], max_val, 
     #          'go--', linewidth=2, markersize=12)
