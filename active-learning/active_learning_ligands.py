@@ -298,7 +298,6 @@ def plot_y_test_means(y_test_means, out_dir, response_name):
     plt.rcParams['svg.fonttype'] = 'none'
     x_label = 'Optimization Step'
     y_label = f'Mean {response_name} in Test Set'
-    legend_prefix = 'Minimum MAE'
 
     plt.plot([_ for _ in range(len(y_test_means))], y_test_means,
              marker='s', markerfacecolor='m', markeredgecolor='black', 
