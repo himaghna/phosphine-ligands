@@ -278,7 +278,7 @@ def plot_maes(maes, out_dir, response_name,
         if not isdir(out_dir):
             mkdir(out_dir)
         out_fpath = join(out_dir, 'mae-plot.svg')
-        print('Saving to {out_fpath}')
+        print(f'Saving to {out_fpath}')
         plt.savefig(out_fpath)
         plt.clf()
 
@@ -315,7 +315,7 @@ def plot_y_test_means(y_test_means, out_dir, response_name):
         if not isdir(out_dir):
             mkdir(out_dir)
         out_fpath = join(out_dir, 'y_test_means-plot.svg')
-        print('Saving to {out_fpath}')
+        print(f'Saving to {out_fpath}')
         plt.savefig(out_fpath)
         plt.clf()
 
