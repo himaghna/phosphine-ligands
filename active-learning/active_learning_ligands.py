@@ -278,9 +278,47 @@ def plot_maes(maes, out_dir, response_name,
         if not isdir(out_dir):
             mkdir(out_dir)
         out_fpath = join(out_dir, 'mae-plot.svg')
+        print('Saving to {out_fpath}')
         plt.savefig(out_fpath)
         plt.clf()
-    
+
+def plot_y_test_means(y_test_means, out_dir, response_name):
+    """Plot the Mean value of responses in the test set
+
+    Parameters
+    ----------
+    y_test_means: List(float)
+        Sequence of mean of y_test values.
+    out_dir: str
+        Path of directory to output plot.
+    response_name: str
+        Label of the response.
+
+    """
+    plt.rcParams['svg.fonttype'] = 'none'
+    x_label = 'Optimization Step'
+    y_label = f'Mean {response_name} in Test Set'
+    legend_prefix = 'Minimum MAE'
+
+    plt.plot([_ for _ in range(len(y_test_means))], y_test_means,
+             marker='s', markerfacecolor='m', markeredgecolor='black', 
+             c='m', markersize=0.1,
+             markeredgewidth=0.01)
+    plt.xticks(fontsize=24)
+    plt.yticks(fontsize=24)
+    plt.xlabel(x_label)
+    plt.ylabel(y_label)
+
+    if INTERACTIVE:
+        plt.show()
+    else:
+        if not isdir(out_dir):
+            mkdir(out_dir)
+        out_fpath = join(out_dir, 'y_test_means-plot.svg')
+        print('Saving to {out_fpath}')
+        plt.savefig(out_fpath)
+        plt.clf()
+
 def main():
     parser = ArgumentParser()
     parser.add_argument('config', help='config yaml')
@@ -313,7 +351,7 @@ def main():
     X_test, X_train = tensor_pop(X, to_pop=initial_idx)
     y_test, y_train = tensor_pop(y, to_pop=initial_idx)
     maes = []
-    
+    y_test_means = [float(torch.mean(y_test).numpy())]
     gpr_model, gpr_mll = get_gpr_model(X=X_train, y=y_train)
     mean_absolute_error = get_mean_absolute_error(X_test=X_test, 
                                                   y_test=y_test, 
@@ -350,6 +388,7 @@ def main():
                                                       y_mean=y_mean, 
                                                       y_scale=y_scale)
         maes.append(mean_absolute_error)
+        y_test_means.append(float(torch.mean(y_test).numpy()))
         plot_testing(gpr_model, 
                      X_test=X, X_train=X_train, 
                      y_test=y, y_train=y_train,
@@ -357,12 +396,14 @@ def main():
                      X_new=X_new, y_new=y_new, 
                      mean_absolute_error=mean_absolute_error,
                      out_dir=output_base_dir, out_fname='image'+str(_+1))
-        
     plot_maes(maes, 
               out_dir=output_base_dir, 
               mae_scale=y_range, 
               mae_scale_label='Range',
               response_name=configs.get('response').upper())
+    plot_y_test_means(y_test_means,
+                      out_dir=output_base_dir, 
+                      response_name=configs.get('response').upper())
         
     # plt.plot([_ for _ in range(configs.get('n_optimization_steps'))], max_val, 
     #          'go--', linewidth=2, markersize=12)
