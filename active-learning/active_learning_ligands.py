@@ -324,26 +324,31 @@ def main():
     args = parser.parse_args()
     with open(args.config, "r") as fp:
         configs = yaml.load(fp, Loader=yaml.FullLoader)
-
-    X = torch.from_numpy(pickle.load(open(configs.get('X'), "rb"))).type(dtype)
-    y = torch.from_numpy(pickle.load(open(configs.get('y'), "rb"))
-                        ).type(dtype).reshape(-1, 1)
-    y_range = float(torch.max(y).numpy() - torch.min(y).numpy())
-    descriptor_names = pickle.load(open(configs.get('descriptor_names'), "rb"))
+    X_path = configs.get('X')
+    y_path = configs.get('y')
+    descriptor_names_path = configs.get('descriptor_names')
     output_base_dir = configs.get('output_dir')
     ylabel = configs.get('response')
+    proportion_of_dataset_for_seeding = configs.get(
+                                            'proportion_of_dataset_for_seeding')
+    random_seed = configs.get('random_seed')
+
+    X = torch.from_numpy(pickle.load(open(X_path, "rb"))).type(dtype)
+    y = torch.from_numpy(pickle.load(open(y_path, "rb"))
+                        ).type(dtype).reshape(-1, 1)
+    descriptor_names = pickle.load(open(descriptor_names_path, "rb"))
+
     xlabel = descriptor_names[VISUALIZATION_DIM]
+    y_range = float(torch.max(y).numpy() - torch.min(y).numpy())
     y_scale = y.std(dim=0)
     y_mean = y.mean(dim=0)
     X_mean = X.mean(dim=0)
     X_std = X.std(dim=0)
     X = (X - X_mean) / X_std
     y = (y - y_mean) / y_scale
-    proportion_of_dataset_for_seeding = float(
-                                  configs.get('proportion_of_dataset_for_seeding'))
     initial_data_size = int(proportion_of_dataset_for_seeding * X.shape[0])
     print(f'Using {initial_data_size} / {X.shape[0]} points for initial seeding')
-    np.random.seed(int(configs.get('random_seed')))
+    np.random.seed(random_seed)
     initial_idx = list(np.random.choice(X.shape[0], 
                        initial_data_size,
                        replace=False))
