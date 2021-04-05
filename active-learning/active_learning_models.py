@@ -5,34 +5,22 @@ from botorch.models import SingleTaskGP
 from botorch.fit import fit_gpytorch_model
 from gpytorch.mlls import ExactMarginalLogLikelihood
 
+from tensor_ops import tensor_elements_split
 
-def optimize_loop(model, loss, X_train, y_train, X_test, y_test, bounds, xlabel):
-    best_value = y_train.max()
-    acq_func = ExpectedImprovement(model, best_f=best_value, maximize=True)
-    acq_vals = acq_func(X_test.view((X_test.shape[0], 1, X_test.shape[1])))
-    max_acqf_id = acq_vals.argmax()
-    X_test_new, X_new = tensor_pop(inp_tensor=X_test,
-        to_pop=max_acqf_id.cpu().numpy())
-    y_test_new, y_new = tensor_pop(inp_tensor=y_test,
-        to_pop=max_acqf_id.cpu().numpy())
-    if INTERACTIVE:
-        plot_acq_func(acq_func, 
-                    X_test=X_test, X_train=X_train, xlabel=xlabel, X_new=X_new)
-    gpr_model, gpr_mll = get_gpr_model(X_new, y_new, model=model)
-    X_train_new = torch.cat((X_train, X_new))
-    y_train_new = torch.cat((y_train, y_new))
-    return {
-        'model': gpr_model,
-        'loss': gpr_mll,
-        'X_train': X_train_new,
-        'y_train': y_train_new,
-        'X_test': X_test_new,
-        'y_test': y_test_new,
-        'X_new': X_new,
-        'y_new': y_new,
-    }
 
-def get_gpr_model(X, y, model=None):
+def get_new_points_acq_func_vals(model, acq_fn_label, new_points, best_response):
+    if acq_fn_label == 'expected_improvement':
+        acq_func = ExpectedImprovement(model, best_f=best_response, maximize=True)
+    else:
+        raise NotImplementedError(f'acq_fn_label {acq_fn_label} does not ' 
+                                   'match implemented types')
+    acq_vals = acq_func(new_points.view((new_points.shape[0], 
+                                         1, 
+                                         new_points.shape[1])))
+    return acq_vals
+
+
+def train_gpr_model(X, y, model=None):
     """
     Fit a gpr model to the data or update the model to new data
     Params ::
@@ -44,8 +32,8 @@ def get_gpr_model(X, y, model=None):
     model: PyTorch SingleTaskGP model: Trained or updated model. 
         Returned in train mode
     mll: PyTorch MarginalLogLikelihood object: Returned in train mode
-    """
     
+    """
     if model is None:
         # set up model
         model = SingleTaskGP(X, y)

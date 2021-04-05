@@ -3,10 +3,14 @@ from os.path import isdir, join
 
 import matplotlib
 import matplotlib.pyplot as plt
+import torch
+
+from tensor_ops import sort_tensor
 
 
 def plot_maes(maes, out_dir, response_name, 
-              mae_scale=None, mae_scale_label='MAE scale'):
+              mae_scale=None, mae_scale_label='MAE scale', 
+              interactive_run=True):
     """Plot the Mean Absolute Errors
 
     Parameters
@@ -44,7 +48,7 @@ def plot_maes(maes, out_dir, response_name,
              legend_prefix + ': {:.2f}'.format(min(maes)), 
              transform=plt.gca().transAxes,
              fontsize=16)
-    if INTERACTIVE:
+    if interactive_run:
         plt.show()
     else:
         if not isdir(out_dir):
@@ -54,7 +58,7 @@ def plot_maes(maes, out_dir, response_name,
         plt.savefig(out_fpath)
         plt.clf()
 
-def plot_y_test_means(y_test_means, out_dir, response_name):
+def plot_y_test_means(y_test_means, out_dir, response_name, interactive_run=True):
     """Plot the Mean value of responses in the test set
 
     Parameters
@@ -80,7 +84,7 @@ def plot_y_test_means(y_test_means, out_dir, response_name):
     plt.xlabel(x_label)
     plt.ylabel(y_label)
 
-    if INTERACTIVE:
+    if interactive_run:
         plt.show()
     else:
         if not isdir(out_dir):
@@ -91,7 +95,8 @@ def plot_y_test_means(y_test_means, out_dir, response_name):
         plt.clf()
     
 def plot_acq_func(acq_func, X_test, X_train, xlabel, 
-                  X_new=None, out_dir=None, out_fname=None):
+                  X_new=None, out_dir=None, out_fname=None,
+                  interactive_run=True):
     test_acq_val = acq_func(X_test.view((X_test.shape[0], 1, X_test.shape[1])))
     hist_fig, ax = plt.subplots(figsize=(12, 6))
     with torch.no_grad():
@@ -111,12 +116,74 @@ def plot_acq_func(acq_func, X_test, X_train, xlabel,
     ax.set_ylabel(r'$ \alpha$', fontsize=20)    
     ax.legend(loc='center left', bbox_to_anchor=(1, 0.5))
     plt.tight_layout()
-    if INTERACTIVE:
+    if interactive_run:
         plt.show()
     else:
         if not isdir(out_dir):
             mkdir(out_dir)
         subdir = join(out_dir, 'acq-plots')
+        if not isdir(subdir):
+            mkdir(subdir)
+        out_fpath = join(subdir, out_fname+'.svg')
+        plt.savefig(out_fpath)
+        plt.clf()
+
+def plot_testing(model, 
+                 X_test, X_train, 
+                 y_train, 
+                 xlabel,
+                 ylabel,
+                 visualization_dim,
+                 interactive_run=True,
+                 y_test=None, mean_absolute_error=None,
+                 X_new=None, y_new=None, out_dir=None, out_fname=None):
+    font = {'size'   : 20}
+    matplotlib.rc('font', **font)
+    plt.rcParams['svg.fonttype'] = 'none'
+    matplotlib.rcParams['axes.linewidth'] = 1.5
+    matplotlib.rcParams['xtick.major.size'] = 8
+    matplotlib.rcParams['xtick.major.width'] = 2
+    matplotlib.rcParams['ytick.major.size'] = 8
+    matplotlib.rcParams['ytick.major.width'] = 2
+    hist_fig, ax = plt.subplots(figsize=(12, 6))
+    model.eval();
+    X_test, idx = sort_tensor(X_test, sort_column_id=visualization_dim)
+    y_test = y_test.index_select(0, idx)
+
+    with torch.no_grad():
+        posterior = model.posterior(X_test)
+        posterior_mean = posterior.mean.cpu().numpy()
+        lower, upper = posterior.mvn.confidence_region()
+        X_test = X_test[:, visualization_dim]
+        ax.plot(X_test.cpu().numpy(), y_test.cpu().numpy(), 
+                'lightcoral', label=f'True {ylabel}')
+        ax.plot(X_test.cpu().numpy(), posterior_mean,
+                'b', label='Posterior Mean')
+        ax.fill_between(X_test.cpu().numpy().squeeze(), 
+                        lower.cpu().numpy(), upper.cpu().numpy(), 
+                        alpha=0.5, label='95% Credibility')   
+        ax.scatter(X_train[:, visualization_dim].cpu().numpy(), 
+                   y_train.cpu().numpy(),
+                   s=150, c='m', marker='*', label='Training Data')
+
+        if X_new is not None:    
+            ax.scatter(X_new[:, visualization_dim].cpu().numpy(), 
+                       y_new.cpu().numpy(),
+                       s=150, c='r', marker='*', label='Infill Data')
+        
+    ax.set_xlabel(xlabel, fontsize=20)
+    ax.set_ylabel(ylabel, fontsize=20)
+    if mean_absolute_error is not None:
+        plt.text(0.7,  0.9, 'MAE: {:.2f}'.format(mean_absolute_error), 
+                transform=ax.transAxes, fontsize=16)
+    ax.legend(loc='center left', bbox_to_anchor=(1, 0.5))
+    plt.tight_layout()
+    if interactive_run:
+        plt.show()
+    else:
+        if not isdir(out_dir):
+            mkdir(out_dir)
+        subdir = join(out_dir, 'test-plots')
         if not isdir(subdir):
             mkdir(subdir)
         out_fpath = join(subdir, out_fname+'.svg')
