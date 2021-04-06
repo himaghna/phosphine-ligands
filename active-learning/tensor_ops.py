@@ -69,9 +69,37 @@ def get_mean_absolute_error(X_test, y_test, gpr_model, y_mean=None, y_scale=None
             abs_error = abs_error * y_scale + y_mean
     return float(torch.mean(abs_error, axis=0).cpu().numpy())
 
-def normalize_tensor(in_tensor, dim):
-    mean_ = in_tensor.mean(dim=dim)
-    std_deviation_ = in_tensor.std(dim=dim)
+def normalize_tensor(in_tensor, dim=0, mean_=None, std_deviation_=None):
+    """Normalize a vector
+
+    Parameters
+    ----------
+    in_tensor: torch.Tensor
+        Tensor to normalize.
+    dim: int
+        Dimension to normalize along. Only needed if the tensors own statistics
+        is used to normalize it (mean_ and std_deviation_ not supplied). 
+        Default is 0.
+    mean: torch.Tensor
+        Mean used to center the Tensor. Not needed if the tensors own statistics
+        is used to normalize it.
+    
+    std_deviation: torch.Tensor
+        Standard deviation used to scale the Tensor. Not needed if the tensors 
+        own statistics is used to normalize it.
+    
+    Returns
+    -------
+    dict
+        'normalized': transformed tensor,
+        'std':
+        'mean':
+    
+    """  
+    if mean_ is None or std_deviation_ is None:
+        print('Normalizing vector using its own statistics')
+        mean_ = in_tensor.mean(dim=dim)
+        std_deviation_ = in_tensor.std(dim=dim)
     return {
         'normalized': (in_tensor - mean_) / std_deviation_,
         'std': std_deviation_,
