@@ -26,11 +26,13 @@ def main():
                         help='Set if required to run in interactive mode')
     args = parser.parse_args()
     interactive_run = args.interactive
+    
     with open(args.config, "r") as fp:
         configs = yaml.load(fp, Loader=yaml.FullLoader)
     X_path = configs['X']
     y_path = configs['y']
-    acq_fn_label = configs['acquisition_function']
+    acq_fn_label = configs['acquisition_function']['label']
+    acq_fn_hyperparams =  configs['acquisition_function'].get('hyperparameters')
     descriptor_names_path = configs['descriptor_names']
     output_base_dir = configs['output_dir']
     ylabel = configs['response']
@@ -82,10 +84,11 @@ def main():
     for _ in range(configs.get('n_optimization_steps')):
         best_response = y_train.max()
         acq_vals = active_learning_models.get_new_points_acq_func_vals(
-                                                    model=gpr_model, 
-                                                    acq_fn_label=acq_fn_label, 
-                                                    new_points=X_test,
-                                                    best_response=best_response)
+                                        model=gpr_model, 
+                                        acq_fn_label=acq_fn_label,
+                                        acq_fn_hyperparams=acq_fn_hyperparams, 
+                                        new_points=X_test,
+                                        best_response=best_response)
         (X_new, y_new), new_point_id  = tensor_ops.get_new_point_to_acquire(
                                                     test_data=(X_test, y_test),
                                                     acq_vals=acq_vals)
@@ -112,6 +115,7 @@ def main():
                                         X_new=X_new, y_new=y_new, 
                                         mean_absolute_error=mean_absolute_error,
                                         visualization_dim=visualization_dim,
+                                        interactive_run=interactive_run,
                                         out_dir=output_base_dir, 
                                         out_fname='image'+str(_+1))
     plotting_functions.plot_maes(maes, 

@@ -1,5 +1,5 @@
 import torch
-from botorch.acquisition.analytic import ExpectedImprovement
+from botorch.acquisition.analytic import ExpectedImprovement, UpperConfidenceBound
 from botorch.optim import optimize_acqf
 from botorch.models import SingleTaskGP
 from botorch.fit import fit_gpytorch_model
@@ -8,9 +8,18 @@ from gpytorch.mlls import ExactMarginalLogLikelihood
 from tensor_ops import tensor_elements_split
 
 
-def get_new_points_acq_func_vals(model, acq_fn_label, new_points, best_response):
+def get_new_points_acq_func_vals(model, 
+                                 acq_fn_label, 
+                                 new_points, 
+                                 best_response,
+                                 acq_fn_hyperparams=None):
     if acq_fn_label == 'expected_improvement':
         acq_func = ExpectedImprovement(model, best_f=best_response, maximize=True)
+    elif acq_fn_label == 'ucb':
+        hyperparams = {'beta': 2}
+        if acq_fn_hyperparams is not None:
+            hyperparams.update(acq_fn_hyperparams)
+        acq_func = UpperConfidenceBound(model, **hyperparams)
     else:
         raise NotImplementedError(f'acq_fn_label {acq_fn_label} does not ' 
                                    'match implemented types')
