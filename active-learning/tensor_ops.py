@@ -39,7 +39,8 @@ def tensor_elements_split(inp_tensor, to_pop, device=None, is_index=True):
         idx_to_keep = torch.tensor([id for id in range(inp_tensor.size(0)) 
                                         if id not in to_pop], 
                                     device=device, dtype=torch.long)
-        to_pop = torch.tensor(to_pop, device=device, dtype=torch.long)
+        if isinstance(to_pop, list):
+            to_pop = torch.tensor(to_pop, device=device, dtype=torch.long)
         popped_elements = inp_tensor.index_select(0, to_pop)
         popped_tensor = inp_tensor.index_select(0, idx_to_keep)
 
