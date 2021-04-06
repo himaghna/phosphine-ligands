@@ -1,8 +1,8 @@
 X: D:\Research\Phosphine-Ligands\Data\Riv-2-25\X.p
-y: D:\Research\Phosphine-Ligands\Data\Riv-2-25\bmi\y_bmi.p
+y: D:\Research\Phosphine-Ligands\Data\Riv-2-25\inv-12r-adj\y_inv-12r-adj.p
 descriptor_names: D:\Research\Phosphine-Ligands\Data\Riv-2-25\descriptor_names.p
-output_dir: D:\Research\Phosphine-Ligands\Data\Riv-2-25\bmi
-response: bmi
+output_dir: D:\Research\Phosphine-Ligands\Data\Riv-2-25\inv-12r-adj
+response: inv-12r-adj
 proportion_of_dataset_for_seeding: 0.05
 random_seed: 42
 n_optimization_steps: 80
@@ -10,3 +10,4 @@ acquisition_function:
   label: ucb
   hyperparameters:
     beta: 100
+
