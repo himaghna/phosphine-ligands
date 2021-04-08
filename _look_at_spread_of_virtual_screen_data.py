@@ -35,7 +35,7 @@ def show_double_bar_plot(heights_class1,
     bars_class2 = ax.bar(x_positions, 
                          heights_class2, 
                          bar_width, 
-                         color=color_class1)
+                         color=color_class2)
 
     ax.set_ylabel(y_label, fontsize=20)
     ax.set_xticks(x_positions + width)
@@ -46,7 +46,7 @@ def show_double_bar_plot(heights_class1,
     def autolabel(all_bars):
         for bar in all_bars:
             h = bar.get_height()
-            ax.text(rect.get_x()+bar.get_width()/2., 1.05*h, '%d'%int(h),
+            ax.text(bar.get_x()+bar.get_width()/2., 1.05*h, '%d'%int(h),
                     ha='center', va='bottom')
 
     autolabel(bars_class1)
