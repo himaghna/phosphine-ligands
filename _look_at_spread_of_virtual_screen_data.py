@@ -1,5 +1,6 @@
 from argparse import ArgumentParser
 
+import numpy as np
 import matplotlib.pyplot as plt
 import pandas as pd
 from sklearn.preprocessing import StandardScaler
@@ -20,26 +21,28 @@ def embed_in_pca_space(X, pca_obj, scaler=None):
 def show_double_bar_plot(heights_class1, 
                          heights_class2, 
                          legend_class1, legend_class2,
-                         x_positions, x_labels, y_label,
+                         x_labels, y_label,
                          color_class1, 
                          color_class2):
 
-    bar_width = 0.27  
+    bar_width = 0.27 
+    x_positions = np.array([id for id, _ in enumerate(x_labels)])
     fig = plt.figure()
     ax = fig.add_subplot(111)
-
+   
     bars_class1 = ax.bar(x_positions, 
                          heights_class1, 
                          bar_width, 
                          color=color_class1)
-    bars_class2 = ax.bar(x_positions, 
+    bars_class2 = ax.bar(x_positions+bar_width, 
                          heights_class2, 
                          bar_width, 
                          color=color_class2)
 
     ax.set_ylabel(y_label, fontsize=20)
-    ax.set_xticks(x_positions + width)
-    ax.set_xticklabels(x_labels, fontsize=20)
+    ax.set_xticks(x_positions+ 0.5*bar_width)
+    ax.set_xticklabels(x_labels, fontsize=15)
+    plt.xticks(rotation=45)
     ax.legend((bars_class1[0], bars_class2[0]), (legend_class1, legend_class2), 
               fontsize=24)
 
@@ -47,7 +50,7 @@ def show_double_bar_plot(heights_class1,
         for bar in all_bars:
             h = bar.get_height()
             ax.text(bar.get_x()+bar.get_width()/2., 1.05*h, '%d'%int(h),
-                    ha='center', va='bottom')
+                    ha='center', va='bottom', fontsize=20)
 
     autolabel(bars_class1)
     autolabel(bars_class2)
@@ -86,14 +89,18 @@ def plot_difference_in_means(screening_inputs,
                              reference_inputs, 
                              screening_color,
                              reference_color):
+    screen_means, reference_means = [], []
     for column_name in screening_inputs.columns:
-    
-    show_double_bar_plot(heights_class1, 
-                         heights_class2, 
-                         legend_class1, legend_class2,
-                         x_positions, x_labels, y_label,
-                         color_class1, 
-                         color_class2
+        screen_means.append(screening_inputs[column_name].values.mean())
+        reference_means.append(reference_inputs[column_name].values.mean())
+
+    show_double_bar_plot(heights_class1=reference_means, 
+                         heights_class2=screen_means, 
+                         legend_class1='Reference', 
+                         legend_class2='Virtual screen',
+                         x_labels=screening_inputs.columns, y_label='Mean Value',
+                         color_class1=reference_color, 
+                         color_class2=screening_color)
 
 
 
