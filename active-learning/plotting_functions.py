@@ -5,7 +5,7 @@ import matplotlib
 import matplotlib.pyplot as plt
 import torch
 
-from tensor_ops import sort_tensor
+from tensor_ops import sort_tensor, detach_tensor_to_numpy
 
 
 def plot_maes(maes, out_dir, response_name, 
@@ -149,7 +149,6 @@ def plot_testing(model,
     model.eval();
     X_test, idx = sort_tensor(X_test, sort_column_id=visualization_dim)
     y_test = y_test.index_select(0, idx)
-
     with torch.no_grad():
         posterior = model.posterior(X_test)
         posterior_mean = posterior.mean.cpu().numpy()
@@ -189,3 +188,32 @@ def plot_testing(model,
         out_fpath = join(subdir, out_fname+'.svg')
         plt.savefig(out_fpath)
         plt.clf()
+
+
+def plot_confidence_region(means, lowers, uppers, 
+                           x_label, y_label, x_tick_labels=None,
+                           mean_line_color='k', 
+                           confidence_region_color='b', 
+                           confidence_region_transparency=0.5,
+                           legend=None):
+    plt.rcParams['svg.fonttype'] = 'none'
+    x_vals = [id for id, _ in enumerate(means)]
+    means = detach_tensor_to_numpy(means)
+    lowers = detach_tensor_to_numpy(lowers)
+    uppers = detach_tensor_to_numpy(uppers)
+
+    fig = plt.figure()
+    ax = fig.add_subplot(111)
+    ax.set_ylabel(y_label, fontsize=20)
+    ax.set_xlabel(x_label, fontsize=20)
+    plt.xticks(fontsize=20)
+    plt.yticks(fontsize=20)
+    if x_tick_labels is not None:
+        ax.set_xticklabels(x_label, fontsize=15)
+    ax.plot(x_vals, means, color=mean_line_color)
+    ax.fill_between(x_vals, lowers, uppers, 
+                    alpha=confidence_region_transparency, 
+                    color=confidence_region_color) 
+    if legend is not None:
+        ax.legend([legend], fontsize=20)
+    plt.show()
