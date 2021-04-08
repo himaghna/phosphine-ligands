@@ -16,6 +16,43 @@ def embed_in_pca_space(X, pca_obj, scaler=None):
     return (X_in_PCA_space[:, dimensions_returned[0]],  
             X_in_PCA_space[:, dimensions_returned[1]])
 
+
+def show_double_bar_plot(heights_class1, 
+                         heights_class2, 
+                         legend_class1, legend_class2,
+                         x_positions, x_labels, y_label,
+                         color_class1, 
+                         color_class2):
+
+    bar_width = 0.27  
+    fig = plt.figure()
+    ax = fig.add_subplot(111)
+
+    bars_class1 = ax.bar(x_positions, 
+                         heights_class1, 
+                         bar_width, 
+                         color=color_class1)
+    bars_class2 = ax.bar(x_positions, 
+                         heights_class2, 
+                         bar_width, 
+                         color=color_class1)
+
+    ax.set_ylabel(y_label, fontsize=20)
+    ax.set_xticks(x_positions + width)
+    ax.set_xticklabels(x_labels, fontsize=20)
+    ax.legend((bars_class1[0], bars_class2[0]), (legend_class1, legend_class2), 
+              fontsize=24)
+
+    def autolabel(all_bars):
+        for bar in all_bars:
+            h = bar.get_height()
+            ax.text(rect.get_x()+bar.get_width()/2., 1.05*h, '%d'%int(h),
+                    ha='center', va='bottom')
+
+    autolabel(bars_class1)
+    autolabel(bars_class2)
+    plt.show()
+
 def plot_PC_distribution_of_points(screening_inputs,
                                    screening_color, 
                                    reference_inputs=None,  
@@ -45,6 +82,23 @@ def plot_PC_distribution_of_points(screening_inputs,
     plt.yticks(fontsize=16)
     plt.show()
 
+def plot_difference_in_means(screening_inputs, 
+                             reference_inputs, 
+                             screening_color,
+                             reference_color):
+    for column_name in screening_inputs.columns:
+    
+    show_double_bar_plot(heights_class1, 
+                         heights_class2, 
+                         legend_class1, legend_class2,
+                         x_positions, x_labels, y_label,
+                         color_class1, 
+                         color_class2
+
+
+
+
+
 if __name__ == '__main__':
     parser = ArgumentParser()
     parser.add_argument('config_path', help='Path of configuration yaml file')
@@ -65,6 +119,8 @@ if __name__ == '__main__':
                                 screening_data_xl.get('path'), 
                                 sheet_name=screening_data_xl.get('sheet_name'),
                                 descriptors=descriptor_labels_to_use)
+    import pickle
+    pickle.dump(screening_inputs.values, open('X_virtual_screen.p', "wb"))
     if reference_data_xl:
         reference_inputs = get_descriptors_df_from_xl(
                                 reference_data_xl.get('path'), 
@@ -77,4 +133,9 @@ if __name__ == '__main__':
                                    reference_inputs=reference_inputs, 
                                    screening_color=screening_color, 
                                    reference_color=reference_color)
+
+    plot_difference_in_means(screening_inputs=screening_inputs, 
+                             reference_inputs=reference_inputs, 
+                             screening_color=screening_color, 
+                             reference_color=reference_color)
      
