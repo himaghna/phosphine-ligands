@@ -188,7 +188,7 @@ def get_new_point_to_acquire(acq_vals, test_data=None):
 
 def detach_tensor_to_numpy(in_tensor):
     if torch.is_tensor(in_tensor):
-        return in_tensor.detach.numpy()
+        return in_tensor.detach().numpy()
     return in_tensor
 
     
