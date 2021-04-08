@@ -56,3 +56,10 @@ def train_gpr_model(X, y, model=None):
     mll.train();
     fit_gpytorch_model(mll);
     return model, mll
+
+
+def get_posterior_mean(model, X):
+     with torch.no_grad():
+        model.eval();
+        posterior = model.posterior(X)
+        return posterior.mean
