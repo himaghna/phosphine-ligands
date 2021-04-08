@@ -8,6 +8,8 @@ from sklearn.decomposition import PCA
 import yaml
 
 
+plt.rcParams['svg.fonttype'] = 'none'
+
 
 def embed_in_pca_space(X, pca_obj, scaler=None):
     dimensions_returned = [0, 1]
