@@ -80,11 +80,11 @@ def normalize_tensor(in_tensor, dim=0, mean_=None, std_deviation_=None):
         Dimension to normalize along. Only needed if the tensors own statistics
         is used to normalize it (mean_ and std_deviation_ not supplied). 
         Default is 0.
-    mean: torch.Tensor
+    mean_: torch.Tensor
         Mean used to center the Tensor. Not needed if the tensors own statistics
         is used to normalize it.
     
-    std_deviation: torch.Tensor
+    std_deviation_: torch.Tensor
         Standard deviation used to scale the Tensor. Not needed if the tensors 
         own statistics is used to normalize it.
     
@@ -105,6 +105,30 @@ def normalize_tensor(in_tensor, dim=0, mean_=None, std_deviation_=None):
         'std': std_deviation_,
         'mean': mean_
     }
+
+
+def scaleup_tensor(in_tensor, mean_, std_deviation_):
+    """Scaleup or "un-normalize" a tensor
+
+    Parameters
+    ----------
+    in_tensor: torch.Tensor
+        Tensor to normalize.
+
+    mean_: torch.Tensor
+        Mean used to re-center the Tensor. 
+    
+    std_deviation_: torch.Tensor
+        Standard deviation used to re-scale the Tensor.
+    Returns
+    -------
+    torch.Tensor
+        Scaledup Tensor.
+
+    """
+    return in_tensor * std_deviation_ + mean_
+
+
 
 def train_test_split(X, train_fraction, random_seed, y=None, device=None):
     train_size = int(train_fraction * X.shape[0])              
