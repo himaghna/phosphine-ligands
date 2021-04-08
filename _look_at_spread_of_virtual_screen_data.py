@@ -85,14 +85,17 @@ def plot_PC_distribution_of_points(screening_inputs,
     plt.yticks(fontsize=16)
     plt.show()
 
-def plot_difference_in_means(screening_inputs, 
+def plot_difference_in_statistics(screening_inputs, 
                              reference_inputs, 
                              screening_color,
                              reference_color):
     screen_means, reference_means = [], []
+    screen_stds, reference_stds = [], []
     for column_name in screening_inputs.columns:
         screen_means.append(screening_inputs[column_name].values.mean())
         reference_means.append(reference_inputs[column_name].values.mean())
+        screen_stds.append(screening_inputs[column_name].values.std())
+        reference_stds.append(reference_inputs[column_name].values.std())
 
     show_double_bar_plot(heights_class1=reference_means, 
                          heights_class2=screen_means, 
@@ -102,6 +105,14 @@ def plot_difference_in_means(screening_inputs,
                          color_class1=reference_color, 
                          color_class2=screening_color)
 
+    show_double_bar_plot(heights_class1=reference_stds, 
+                         heights_class2=screen_stds, 
+                         legend_class1='Reference', 
+                         legend_class2='Virtual screen',
+                         x_labels=screening_inputs.columns, 
+                         y_label='Standard Deviation',
+                         color_class1=reference_color, 
+                         color_class2=screening_color)
 
 
 
@@ -141,8 +152,8 @@ if __name__ == '__main__':
                                    screening_color=screening_color, 
                                    reference_color=reference_color)
 
-    plot_difference_in_means(screening_inputs=screening_inputs, 
-                             reference_inputs=reference_inputs, 
-                             screening_color=screening_color, 
-                             reference_color=reference_color)
+    plot_difference_in_statistics(screening_inputs=screening_inputs, 
+                                  reference_inputs=reference_inputs, 
+                                  screening_color=screening_color, 
+                                  reference_color=reference_color)
      
