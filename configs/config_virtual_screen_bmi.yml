@@ -1,0 +1,12 @@
+train_data:  
+  X: D:\Research\Phosphine-Ligands\Data\Riv-2-25\X.p
+  y: D:\Research\Phosphine-Ligands\Data\Riv-2-25\bmi\y_bmi.p
+test_data:
+  X: D:\Research\Phosphine-Ligands\Data\Riv-2-25\virtual_screen\X_virtual_screen.p
+output_dir: D:\Research\Phosphine-Ligands\Results\Reference_vs_Screen_Comparison
+response: bmi
+random_seed: 42
+number_of_candidates: 10
+acquisition_function:
+  label: expected_improvement
+plotting_color: "#ff5e78"

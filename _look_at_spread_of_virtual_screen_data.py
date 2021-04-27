@@ -63,11 +63,15 @@ def plot_PC_distribution_of_points(screening_inputs,
                                    reference_inputs=None,  
                                    reference_color=None):
     concat_inputs = pd.concat([screening_inputs, reference_inputs]).values
+    
+    #concat_inputs =  reference_inputs.values
     concat_scaler = StandardScaler()
     concat_inputs_normalized = concat_scaler.fit_transform(concat_inputs)
     concat_pca = PCA()
     concat_pca.fit(concat_inputs_normalized)
-
+    print(reference_inputs.columns)
+    print('PC1', abs(concat_pca.components_[0]))
+    print('PC2', abs(concat_pca.components_[1]))
     screen_pc1, screen_pc2 = embed_in_pca_space(screening_inputs.values, 
                                                 scaler=concat_scaler, 
                                                 pca_obj=concat_pca)

@@ -33,6 +33,7 @@ def main():
     y_path = configs['y']
     acq_fn_label = configs['acquisition_function']['label']
     acq_fn_hyperparams =  configs['acquisition_function'].get('hyperparameters')
+    n_optimization_steps = configs['n_optimization_steps']
     descriptor_names_path = configs['descriptor_names']
     output_base_dir = configs['output_dir']
     ylabel = configs['response']
@@ -46,8 +47,6 @@ def main():
     y_range = float(torch.max(y).numpy() - torch.min(y).numpy())
     X = tensor_ops.normalize_tensor(X, dim=0)
     y = tensor_ops.normalize_tensor(y, dim=0)
-    opt_bounds = torch.stack([X['normalized'].min(dim=0).values, 
-                              X['normalized'].max(dim=0).values])
     descriptor_names = pickle.load(open(descriptor_names_path, "rb"))
     xlabel = descriptor_names[visualization_dim]
     X_train, X_test, y_train, y_test = tensor_ops.train_test_split(
@@ -81,7 +80,7 @@ def main():
                                     out_dir=output_base_dir, 
                                     out_fname='initial')
     
-    for _ in range(configs.get('n_optimization_steps')):
+    for _ in range(n_optimization_steps):
         best_response = y_train.max()
         acq_vals = active_learning_models.get_new_points_acq_func_vals(
                                         model=gpr_model, 

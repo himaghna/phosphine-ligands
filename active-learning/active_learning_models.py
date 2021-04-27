@@ -62,10 +62,12 @@ def get_posterior_mean(model, X):
      with torch.no_grad():
         model.eval();
         posterior = model.posterior(X)
-        return posterior.mean.cpu().numpy()
+        return posterior.mean.cpu()
 
 def get_lower_upper_confidence(model, X):
-    posterior = model.posterior(X)
-    lower, upper = posterior.mvn.confidence_region()  # 2 std deviations
-    return lower.cpu().numpy, upper.cpu().numpy
+    with torch.no_grad():
+        model.eval();
+        posterior = model.posterior(X)
+        lower, upper = posterior.mvn.confidence_region()  # 2 std deviations
+        return lower, upper
 

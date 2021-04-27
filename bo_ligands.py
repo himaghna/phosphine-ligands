@@ -1,7 +1,4 @@
-"""
-@uthor: Himaghna, 22nd November 2019
-Description: Perform Bayesian Optimization on the California data set
-"""
+
 
 from argparse import ArgumentParser
 import os.path
@@ -151,14 +148,12 @@ if __name__ == "__main__":
     else:
         bo_dir = None
 
-    #explore_dataset(processed_data) # explore dataset
-    # normalize X and y
     y_scale = y.std(dim=0)
     y_mean = y.mean(dim=0)
     X_mean = X.mean(dim=0)
     X_std = X.std(dim=0)
     X = (X - X_mean) / X_std
-    #y = (y - y_mean) / y_scale
+    y = (y - y_mean) / y_scale
 
     # set up GPR model
     gpr_model, gpr_mll = get_gpr_model(X=X, y=y)

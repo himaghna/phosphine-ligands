@@ -11,8 +11,9 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import pickle
+from seaborn import heatmap
 from sklearn.decomposition import PCA
-from sklearn.preprocessing import StandardScaler
+from sklearn.preprocessing import StandardScaler, normalize
 
 # pyplot parameters
 plt.rcParams['svg.fonttype'] = 'none'
@@ -137,6 +138,14 @@ def do_PCA(X, descriptor_names,save_location=None, variance_needed=0.90):
     # Call the function. Use only the 2 PCs.
     X_new = pca.transform(X_std)
     load_plot(X_new[:, 0:2], np.transpose(pca.components_[0:2, :]))
+    plt.show()
+
+    # plot contributions to each pca component as a heatmap
+    N_COMPONENTS = 79
+    normalized_contribution_matrix = normalize(X=pca.components_, norm='l2')
+    heatmap(normalized_contribution_matrix[:N_COMPONENTS, :], cmap="Spectral")
+    plt.xlabel('Original Descriptor', fontsize=20)
+    plt.ylabel('Principal Component', fontsize=20)
     plt.show()
     return n_eigenvectors_needed
 
