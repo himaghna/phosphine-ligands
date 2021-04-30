@@ -3,11 +3,42 @@ import pickle
 
 import matplotlib.pyplot as plt
 import numpy as np
+from sklearn.decomposition import PCA
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler
 
 from plotting_functions import plot_parity
 import multiple_models
+
+
+def get_pca_transformed(X_train, variance_needed=0.9):
+    pca = PCA()
+    pca.fit(X_train)
+
+    def get_cumulative(in_list):
+        out_list = list()
+        for key, value in enumerate(in_list):
+            assert isinstance(value, int) or isinstance(value, float)
+            try:
+                new_cumulative = out_list[key-1] + value
+            except IndexError:
+                # first element
+                new_cumulative = value
+            out_list.append(new_cumulative)
+        return out_list
+
+    cum_var = get_cumulative([i for i in pca.explained_variance_ratio_])
+
+    def get_n_eigenvectors(cum_var):
+        for key, value in enumerate(cum_var):
+            if value >= variance_needed:
+                n_eigenvectors_needed = (key+1)
+                print(f'{value} explained by {n_eigenvectors_needed} PC')
+                return n_eigenvectors_needed
+    
+    n_pc = get_n_eigenvectors(cum_var)
+    return pca, n_pc
+
 
 
 if __name__ == '__main__':    
@@ -22,8 +53,8 @@ if __name__ == '__main__':
                         required=False, 
                         type=float,
                         help='Fraction of X, y used for training.')
-    parser.add_argument('-od', '--output_dir', required=False, default=None,
-                        help='Optional output directory for saving images')
+    parser.add_argument('-pc', required=False, default=False,
+                        help='If anything passed, PCA is done')
     parser.add_argument('-rs', '--random_state',
                         required=False,
                         default=42, 
@@ -35,6 +66,7 @@ if __name__ == '__main__':
     model_name = args.model
     random_state = args.random_state
     train_fr = args.training_fraction
+    do_PCA = bool(args.pc)
 
     if args.xv is not None:
         X_test= pickle.load(open(args.xv, "rb"))
@@ -54,6 +86,11 @@ if __name__ == '__main__':
     
     x_scaler = StandardScaler()
     X_train = x_scaler.fit_transform(X_train)
+    if do_PCA:
+        pca_scaler, n_eigenvectors = get_pca_transformed(X_train, 
+                                                         variance_needed=0.9)
+        X_train = pca_scaler.transform(X_train)[:, :n_eigenvectors]
+    
     if model_name == 'rf' or model_name == 'random_forest':
         model_ = multiple_models.get_forest(X_train, y_train, 
                                             random_state=random_state, 
@@ -65,6 +102,9 @@ if __name__ == '__main__':
                                          normalize_y=True)
     if X_test is not None:
         X_test= x_scaler.transform(X_test)
+        if do_PCA:
+            X_test = pca_scaler.transform(X_test)[:, :n_eigenvectors]
+
         y_pred, cli_95 = multiple_models.predict_on_test_data(
                                                         model_, 
                                                         X_test=X_test,
